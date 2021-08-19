@@ -1,0 +1,74 @@
+name: Quarkus Microservice
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v2
+      - name: JDK Setup
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+      #- name: Build with Maven
+      #  run: mvn --batch-mode --update-snapshots verify
+      - name: Build
+        run: |
+          env | grep GITHUB
+          echo "mvn clean package - "
+          echo "save output"
+
+      - name: Code Analysis
+        run: exit 0
+
+  functional-test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Functional Tests
+        run: exit 0
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: functional-test
+    steps:
+      - name: Load Credentials
+        env:
+          GCLOUD_SA: ${{ secrets.GCLOUD_SA }}
+        run: |
+          echo
+          echo "run action: docker + python"
+          echo "output=gcloud_load_credentials(${GITHUB_REF#refs/heads/})"
+
+      - name: Push to Docker Registry
+        run: |
+          echo "docker build JAR || NATIVE -t ${GITHUB_SHA::8}"
+          echo "docker push * using GCLOUD_SA : ${{ secrets.GCLOUD_SA }}"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+
+      - name: Deploy Infra
+        run: echo "Deploying infra on branch $GITHUB_REF"
+
+      - name: Deploy Application
+        run: echo "Deploying application on branch $GITHUB_REF"
+
+  test:
+    runs-on: ubuntu-latest
+    needs: deploy
+    steps:
+      - name: Integration tests
+        run: |
+          echo "Running integration tests"
+
+
